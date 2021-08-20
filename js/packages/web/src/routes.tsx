@@ -20,13 +20,17 @@ import { CoingeckoProvider } from './contexts/coingecko';
 import { BillingView } from './views/auction/billing';
 import { AdminView } from './views/admin';
 import { ConfettiProvider } from './components/Confetti';
+import ArweaveNodeProvider from './utils/arweaveNodeProvider';
 const { WalletProvider } = contexts.Wallet;
 const { ConnectionProvider } = contexts.Connection;
 const { AccountsProvider } = contexts.Accounts;
 
 export function Routes() {
   // Arweave client.
-  arweaveContext();
+  console.log(
+    'The arweave node prpvider is -> ',
+    ArweaveNodeProvider.getProvider()
+  )
   return (
     <>
       <HashRouter basename={'/'}>
@@ -105,3 +109,4 @@ export function Routes() {
     </>
   );
 }
+

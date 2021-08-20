@@ -43,6 +43,7 @@
     ]
   },
   "dependencies": {
+    "arweave": "^1.10.16",
     "cross-env": "^7.0.3",
     "next": "^11.0.1",
     "react": "17.0.2",
