@@ -84,50 +84,42 @@ const metadataToArt = (
 };
 
 const cachedImages = new Map<string, string>();
-export const useCachedImage = (uri: string, cacheMesh?: boolean) => {
+export const useCachedImage = (id: string, cacheMesh?: boolean) => {
   const [cachedBlob, setCachedBlob] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (!uri) {
+    if (!id) {
       return;
     }
 
-    const result = cachedImages.get(uri);
+    const result = cachedImages.get(id);
     if (result) {
+      console.log('AHH LA TENIAMOS YA EN  CACHE, DE LUJO JULIO.');
       setCachedBlob(result);
       return;
     }
 
-    (async () => {
-      let response: Response;
-      try {
-        response = await fetch(uri, { cache: 'force-cache' });
-      } catch {
-        try {
-          response = await fetch(uri, { cache: 'reload' });
-        } catch {
-          // If external URL, just use the uri
-          if (uri?.startsWith('http')) {
-            setCachedBlob(uri);
-          }
-          setIsLoading(false);
-          return;
-        }
-      }
+    ArweaveNodeProvider.getProvider()
+      .transactions.getData(id, { decode: true })
+      .then(async response => {
+        const blob = await new Blob([response]);
 
-      const blob = await response.blob();
-      if (cacheMesh) {
-        // extra caching for meshviewer
-        Cache.enabled = true;
-        Cache.add(uri, await blob.arrayBuffer());
-      }
-      const blobURI = URL.createObjectURL(blob);
-      cachedImages.set(uri, blobURI);
-      setCachedBlob(blobURI);
-      setIsLoading(false);
-    })();
-  }, [uri, setCachedBlob, setIsLoading]);
+        if (cacheMesh) {
+          // extra caching for meshviewer
+          Cache.enabled = true;
+          Cache.add(id, await blob.arrayBuffer());
+        }
+        const blobURI = URL.createObjectURL(blob);
+        cachedImages.set(id, blobURI);
+        setCachedBlob(blobURI);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setIsLoading(false);
+        ArweaveNodeProvider.setError();
+      });
+  }, [id, setCachedBlob, setIsLoading]);
 
   return { cachedBlob, isLoading };
 };
@@ -178,7 +170,6 @@ export const useExtendedArt = (id?: StringPublicKey) => {
 
     if (account && account.info.data.uri) {
       const id = cleanURI(account.info.data.uri);
-      console.log('ID -> ', id);
       const processJson = (extended: any) => {
         if (!extended || extended?.properties?.files?.length === 0) {
           return;
@@ -206,7 +197,6 @@ export const useExtendedArt = (id?: StringPublicKey) => {
             .then(async _ => {
               try {
                 const data = await JSON.parse(_);
-                console.log('DATA -> ', data);
                 try {
                   localStorage.setItem(id, JSON.stringify(data));
                 } catch {

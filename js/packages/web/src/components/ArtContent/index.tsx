@@ -8,15 +8,16 @@ import { Stream, StreamPlayerApi } from '@cloudflare/stream-react';
 import { PublicKey } from '@solana/web3.js';
 import { getLast } from '../../utils/utils';
 import { pubkeyToString } from '../../utils/pubkeyToString';
+import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 const MeshArtContent = ({
-  uri,
+  id: id,
   animationUrl,
   className,
   style,
   files,
 }: {
-  uri?: string;
+  id?: string;
   animationUrl?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -27,7 +28,7 @@ const MeshArtContent = ({
 
   if (isLoading) {
     return <CachedImageContent
-      uri={uri}
+      id={id}
       className={className}
       preview={false}
       style={{ width: 300, ...style }}/>;
@@ -37,18 +38,18 @@ const MeshArtContent = ({
 }
 
 const CachedImageContent = ({
-  uri,
+  id: id,
   className,
   preview,
   style,
 }: {
-  uri?: string;
+  id?: string;
   className?: string;
   preview?: boolean;
   style?: React.CSSProperties;
 }) => {
   const [loaded, setLoaded] = useState<boolean>(false);
-  const { cachedBlob } = useCachedImage(uri || '');
+  const { cachedBlob } = useCachedImage(id || '');
 
   return <Image
       src={cachedBlob}
@@ -68,14 +69,14 @@ const VideoArtContent = ({
   className,
   style,
   files,
-  uri,
+  id,
   animationURL,
   active,
 }: {
   className?: string;
   style?: React.CSSProperties;
   files?: (MetadataFile | string)[];
-  uri?: string;
+  id?: string;
   animationURL?: string;
   active?: boolean;
 }) => {
@@ -155,7 +156,7 @@ export const ArtContent = ({
   allowMeshRender,
   pubkey,
 
-  uri,
+  image_id,
   animationURL,
   files,
 }: {
@@ -169,16 +170,15 @@ export const ArtContent = ({
   active?: boolean;
   allowMeshRender?: boolean;
   pubkey?: PublicKey | string,
-  uri?: string;
+  image_id?: string;
   animationURL?: string;
   files?: (MetadataFile | string)[];
 }) => {
-  const id = pubkeyToString(pubkey);
 
-  const { ref, data } = useExtendedArt(id);
+  const { ref, data } = useExtendedArt(pubkeyToString(pubkey));
 
   if (pubkey && data) {
-    uri = data.image;
+    image_id = data.image;
     animationURL = data.animation_url;
   }
 
@@ -193,7 +193,7 @@ export const ArtContent = ({
 
   if (allowMeshRender && (category === 'vr' || animationUrlExt === 'glb' || animationUrlExt === 'gltf')) {
     return <MeshArtContent
-      uri={uri}
+      id={image_id}
       animationUrl={animationURL}
       className={className}
       style={style}
@@ -205,12 +205,12 @@ export const ArtContent = ({
       className={className}
       style={style}
       files={files}
-      uri={uri}
+      id={image_id}
       animationURL={animationURL}
       active={active}
     />
   ) : (
-    <CachedImageContent uri={uri}
+    <CachedImageContent id={image_id}
       className={className}
       preview={preview}
       style={style}/>
