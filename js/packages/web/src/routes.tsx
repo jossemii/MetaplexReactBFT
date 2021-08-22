@@ -26,11 +26,6 @@ const { ConnectionProvider } = contexts.Connection;
 const { AccountsProvider } = contexts.Accounts;
 
 export function Routes() {
-  // Arweave client.
-  console.log(
-    'The arweave node prpvider is -> ',
-    ArweaveNodeProvider.getProvider()
-  )
   return (
     <>
       <HashRouter basename={'/'}>

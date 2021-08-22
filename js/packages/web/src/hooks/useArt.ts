@@ -14,6 +14,7 @@ import { WhitelistedCreator } from '../models/metaplex';
 import { Cache } from 'three';
 import { useInView } from 'react-intersection-observer';
 import { pubkeyToString } from '../utils/pubkeyToString';
+import ArweaveNodeProvider from '../utils/arweaveNodeProvider';
 
 const metadataToArt = (
   info: Metadata | undefined,
@@ -170,22 +171,14 @@ export const useExtendedArt = (id?: StringPublicKey) => {
 
   if (!init && id && !data) {
     setInit(true);
-    const USE_CDN = false;
-    const routeCDN = (uri: string) => {
-      let result = uri;
-      if (USE_CDN) {
-        result = uri.replace(
-          'https://arweave.net/', // CENTRAL
-          'https://coldcdn.com/api/cdn/bronil/', // CENTRAL
-        );
-      }
-
-      return result;
+    const cleanURI = (uri: string) => {
+      let s = uri.split('/');
+      return s[s.length - 1].slice(0, 43); // An string id on arweave've 43 characters
     };
 
     if (account && account.info.data.uri) {
-      const uri = routeCDN(account.info.data.uri);
-
+      const id = cleanURI(account.info.data.uri);
+      console.log('ID -> ', id);
       const processJson = (extended: any) => {
         if (!extended || extended?.properties?.files?.length === 0) {
           return;
@@ -195,27 +188,27 @@ export const useExtendedArt = (id?: StringPublicKey) => {
           const file = extended.image.startsWith('http')
             ? extended.image
             : `${account.info.data.uri}/${extended.image}`;
-          extended.image = routeCDN(file);
+          extended.image = cleanURI(file);
         }
 
         return extended;
       };
 
       try {
-        const cached = localStorage.getItem(uri);
+        const cached = null; // localStorage.getItem(id);
         if (cached) {
-          console.log('Get from cache.');
           setData(processJson(JSON.parse(cached)));
         } else {
-          // TODO: BL handle concurrent calls to avoid double query
-          console.log('Get from arweave.');
+          // TODO: BL handle concurrent calls to avoid double query ??
 
-          fetch(uri)
+          ArweaveNodeProvider.getProvider()
+            .transactions.getData(id, { decode: true, string: true })
             .then(async _ => {
               try {
-                const data = await _.json();
+                const data = await JSON.parse(_);
+                console.log('DATA -> ', data);
                 try {
-                  localStorage.setItem(uri, JSON.stringify(data));
+                  localStorage.setItem(id, JSON.stringify(data));
                 } catch {
                   // ignore
                 }
@@ -225,6 +218,7 @@ export const useExtendedArt = (id?: StringPublicKey) => {
               }
             })
             .catch(() => {
+              ArweaveNodeProvider.setError();
               return undefined;
             });
         }

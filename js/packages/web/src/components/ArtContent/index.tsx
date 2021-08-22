@@ -176,7 +176,6 @@ export const ArtContent = ({
   const id = pubkeyToString(pubkey);
 
   const { ref, data } = useExtendedArt(id);
-  console.log('Metadata -> ', data)
 
   if (pubkey && data) {
     uri = data.image;
