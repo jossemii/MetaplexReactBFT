@@ -95,7 +95,6 @@ export const useCachedImage = (id: string, cacheMesh?: boolean) => {
 
     const result = cachedImages.get(id);
     if (result) {
-      console.log('AHH LA TENIAMOS YA EN  CACHE, DE LUJO JULIO.');
       setCachedBlob(result);
       return;
     }
@@ -116,6 +115,10 @@ export const useCachedImage = (id: string, cacheMesh?: boolean) => {
         setIsLoading(false);
       })
       .catch(() => {
+        // If external URL, just use the uri
+        //if (uri?.startsWith('http')) {
+        //  setCachedBlob(uri);
+        //}
         setIsLoading(false);
         ArweaveNodeProvider.setError();
       });
@@ -186,11 +189,11 @@ export const useExtendedArt = (id?: StringPublicKey) => {
       };
 
       try {
-        const cached = null; // localStorage.getItem(id);
+        const cached = localStorage.getItem(id);
         if (cached) {
           setData(processJson(JSON.parse(cached)));
         } else {
-          // TODO: BL handle concurrent calls to avoid double query ??
+          // TODO: BL handle concurrent calls to avoid double query ¿??
 
           ArweaveNodeProvider.getProvider()
             .transactions.getData(id, { decode: true, string: true })
