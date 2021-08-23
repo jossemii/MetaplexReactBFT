@@ -198,7 +198,7 @@ export const useExtendedArt = (id?: StringPublicKey) => {
           .transactions.getData(id, { decode: true, string: true })
           .then(async _ => {
             try {
-              const data = await JSON.parse(_);
+              const data = await JSON.parse(_); // getData return only string.
               try {
                 localStorage.setItem(id, JSON.stringify(data));
               } catch {

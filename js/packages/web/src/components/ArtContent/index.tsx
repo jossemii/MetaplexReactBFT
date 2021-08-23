@@ -104,8 +104,10 @@ const VideoArtContent = ({
     return arr.length >= 2 ? index === 1 : index === 0;
   })?.[0] as string;
 
+  const { cachedBlob } = useCachedImage(id || '');
+
   const content = (
-    likelyVideo && likelyVideo.startsWith('https://watch.videodelivery.net/') ? (
+    likelyVideo && likelyVideo.startsWith('https://watch.videodelivery.net/') ? ( // CENTRAL
       <div className={`${className} square`}>
         <Stream
           streamRef={(e: any) => playerRef(e)}
@@ -132,7 +134,7 @@ const VideoArtContent = ({
         controlsList="nodownload"
         style={style}
         loop={true}
-        poster={uri}
+        poster={cachedBlob}
       >
         {likelyVideo && <source src={likelyVideo} type="video/mp4" style={style} />}
         {animationURL && <source src={animationURL} type="video/mp4" style={style} />}
