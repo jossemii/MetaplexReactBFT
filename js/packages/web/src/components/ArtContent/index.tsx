@@ -176,7 +176,6 @@ export const ArtContent = ({
 }) => {
 
   const { ref, data } = useExtendedArt(pubkeyToString(pubkey));
-
   if (pubkey && data) {
     image_id = data.image;
     animationURL = data.animation_url;

@@ -164,60 +164,58 @@ export const useExtendedArt = (id?: StringPublicKey) => {
     [key, metadata],
   );
 
-  if (!init && id && !data) {
-    setInit(true);
+  if (!init && id && !data && account && account.info.data.uri) {
     const cleanURI = (uri: string) => {
       let s = uri.split('/');
       return s[s.length - 1].slice(0, 43); // An string id on arweave've 43 characters
     };
 
-    if (account && account.info.data.uri) {
-      const id = cleanURI(account.info.data.uri);
-      const processJson = (extended: any) => {
-        if (!extended || extended?.properties?.files?.length === 0) {
-          return;
-        }
-
-        if (extended?.image) {
-          const file = extended.image.startsWith('http')
-            ? extended.image
-            : `${account.info.data.uri}/${extended.image}`;
-          extended.image = cleanURI(file);
-        }
-
-        return extended;
-      };
-
-      try {
-        const cached = localStorage.getItem(id);
-        if (cached) {
-          setData(processJson(JSON.parse(cached)));
-        } else {
-          // TODO: BL handle concurrent calls to avoid double query ¿??
-
-          ArweaveNodeProvider.getProvider()
-            .transactions.getData(id, { decode: true, string: true })
-            .then(async _ => {
-              try {
-                const data = await JSON.parse(_);
-                try {
-                  localStorage.setItem(id, JSON.stringify(data));
-                } catch {
-                  // ignore
-                }
-                setData(processJson(data));
-              } catch {
-                return undefined;
-              }
-            })
-            .catch(() => {
-              ArweaveNodeProvider.setError();
-              return undefined;
-            });
-        }
-      } catch (ex) {
-        console.error(ex);
+    setInit(true);
+    const id = cleanURI(account.info.data.uri);
+    const processJson = (extended: any) => {
+      if (!extended || extended?.properties?.files?.length === 0) {
+        return;
       }
+
+      if (extended?.image) {
+        const file = extended.image.startsWith('http')
+          ? extended.image
+          : `${account.info.data.uri}/${extended.image}`;
+        extended.image = cleanURI(file);
+      }
+
+      return extended;
+    };
+
+    try {
+      const cached = localStorage.getItem(id);
+      if (cached) {
+        setData(processJson(JSON.parse(cached)));
+      } else {
+        // TODO: BL handle concurrent calls to avoid double query ¿??
+
+        ArweaveNodeProvider.getProvider()
+          .transactions.getData(id, { decode: true, string: true })
+          .then(async _ => {
+            try {
+              const data = await JSON.parse(_);
+              try {
+                localStorage.setItem(id, JSON.stringify(data));
+              } catch {
+                // ignore
+              }
+              setData(processJson(data));
+            } catch {
+              return undefined;
+            }
+          })
+          .catch(() => {
+            ArweaveNodeProvider.setError();
+            return undefined;
+          });
+      }
+    } catch (ex) {
+      console.error(ex);
     }
   }
   return { ref, data };

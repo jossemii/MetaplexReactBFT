@@ -27,7 +27,6 @@ export const ArtView = () => {
     badge = `${art.edition} of ${art.supply}`;
   }
   const { ref, data } = useExtendedArt(id);
-
   // const { userAccounts } = useUserAccounts();
 
   // const accountByMint = userAccounts.reduce((prev, acc) => {
