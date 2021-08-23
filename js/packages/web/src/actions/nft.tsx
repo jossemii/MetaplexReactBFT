@@ -27,6 +27,7 @@ import crypto from 'crypto';
 import { getAssetCostToStore } from '../utils/assets';
 import { AR_SOL_HOLDER_ID } from '../utils/ids';
 import BN from 'bn.js';
+import ArweaveNodeProvider from '../utils/arweaveNodeProvider';
 const RESERVED_TXN_MANIFEST = 'manifest.json';
 
 interface IArweaveResult {
@@ -197,6 +198,46 @@ export const mintNFT = async (
 
   // TODO: convert to absolute file name for image
 
+
+
+
+  // Arweave transactions.
+  const ar = ArweaveNodeProvider.getProvider();
+  let key = await ar.wallets.generate();
+  
+  // image transaction
+  let image_tx = await ar.createTransaction({ data: files[image]}, key);
+  image_tx.addTag('Content-Type', 'image/jpg');
+  await ar.transactions.sign(image_tx, key);
+  ar.transactions.getStatus(image_tx.id).then(res => {
+    console.log(res);
+  })
+
+  // metadata.json transaction
+  let metadata_tx = await ar.createTransaction({ data: files[image]}, key);
+  metadata_tx.addTag('Content-Type', 'application/json');
+  await ar.transactions.sign(metadata_tx, key);
+  ar.transactions.getStatus(metadata_tx.id).then(res => {
+    console.log(res);
+  })
+
+  // manifest.json transaction
+  let manifest_tx = await ar.createTransaction({ data: files[image]}, key);
+  manifest_tx.addTag('Content-Type', 'application/x.arweave-manifest+json');
+  manifest_tx.addTransaction()
+  await ar.transactions.sign(manifest_tx, key);
+  ar.transactions.getStatus(manifest_tx.id).then(res => {
+    console.log(res);
+  })
+  
+  const result: IArweaveResult = await (
+    ar.transactions.getData(manifest_tx).then(result => {
+      
+    });
+  );
+
+
+  // GOOGLE CLOUD FUNCTIONS.
   const result: IArweaveResult = await (
     await fetch(
       // TODO: add CNAME
@@ -209,6 +250,12 @@ export const mintNFT = async (
       },
     )
   ).json();
+
+
+
+
+
+
 
   const metadataFile = result.messages?.find(
     m => m.filename === RESERVED_TXN_MANIFEST,
