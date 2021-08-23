@@ -154,7 +154,6 @@ export const useExtendedArt = (id?: StringPublicKey) => {
   const { metadata } = useMeta();
 
   const [data, setData] = useState<IMetadataExtension>();
-  const [init, setInit] = useState(false);
   const { ref, inView } = useInView();
 
   const key = pubkeyToString(id);
@@ -164,59 +163,60 @@ export const useExtendedArt = (id?: StringPublicKey) => {
     [key, metadata],
   );
 
-  if (!init && id && !data && account && account.info.data.uri) {
-    const cleanURI = (uri: string) => {
-      let s = uri.split('/');
-      return s[s.length - 1].slice(0, 43); // An string id on arweave've 43 characters
-    };
+  useEffect(() => {
+    if (inView && id && !data && account && account.info.data.uri) {
+      const cleanURI = (uri: string) => {
+        let s = uri.split('/');
+        return s[s.length - 1].slice(0, 43); // An string id on arweave've 43 characters
+      };
 
-    setInit(true);
-    const id = cleanURI(account.info.data.uri);
-    const processJson = (extended: any) => {
-      if (!extended || extended?.properties?.files?.length === 0) {
-        return;
-      }
+      const id = cleanURI(account.info.data.uri);
+      const processJson = (extended: any) => {
+        if (!extended || extended?.properties?.files?.length === 0) {
+          return;
+        }
 
-      if (extended?.image) {
-        const file = extended.image.startsWith('http')
-          ? extended.image
-          : `${account.info.data.uri}/${extended.image}`;
-        extended.image = cleanURI(file);
-      }
+        if (extended?.image) {
+          const file = extended.image.startsWith('http')
+            ? extended.image
+            : `${account.info.data.uri}/${extended.image}`;
+          extended.image = cleanURI(file);
+        }
 
-      return extended;
-    };
+        return extended;
+      };
 
-    try {
-      const cached = localStorage.getItem(id);
-      if (cached) {
-        setData(processJson(JSON.parse(cached)));
-      } else {
-        // TODO: BL handle concurrent calls to avoid double query ¿??
+      try {
+        const cached = localStorage.getItem(id);
+        if (cached) {
+          setData(processJson(JSON.parse(cached)));
+        } else {
+          // TODO: BL handle concurrent calls to avoid double query ¿??
 
-        ArweaveNodeProvider.getProvider()
-          .transactions.getData(id, { decode: true, string: true })
-          .then(async _ => {
-            try {
-              const data = await JSON.parse(_); // getData return only string.
+          ArweaveNodeProvider.getProvider()
+            .transactions.getData(id, { decode: true, string: true })
+            .then(async _ => {
               try {
-                localStorage.setItem(id, JSON.stringify(data));
+                const data = await JSON.parse(_ as string);
+                try {
+                  localStorage.setItem(id, JSON.stringify(data));
+                } catch {
+                  // ignore
+                }
+                setData(processJson(data));
               } catch {
-                // ignore
+                return undefined;
               }
-              setData(processJson(data));
-            } catch {
+            })
+            .catch(() => {
+              ArweaveNodeProvider.setError();
               return undefined;
-            }
-          })
-          .catch(() => {
-            ArweaveNodeProvider.setError();
-            return undefined;
-          });
+            });
+        }
+      } catch (ex) {
+        console.error(ex);
       }
-    } catch (ex) {
-      console.error(ex);
     }
-  }
+  }, [inView, id, data, setData, account]);
   return { ref, data };
 };
