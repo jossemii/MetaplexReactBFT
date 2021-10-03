@@ -8,16 +8,15 @@ import { Stream, StreamPlayerApi } from '@cloudflare/stream-react';
 import { PublicKey } from '@solana/web3.js';
 import { getLast } from '../../utils/utils';
 import { pubkeyToString } from '../../utils/pubkeyToString';
-import { ConsoleSqlOutlined } from '@ant-design/icons';
 
 const MeshArtContent = ({
-  id: id,
+  uri,
   animationUrl,
   className,
   style,
   files,
 }: {
-  id?: string;
+  uri?: string;
   animationUrl?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -28,7 +27,7 @@ const MeshArtContent = ({
 
   if (isLoading) {
     return <CachedImageContent
-      id={id}
+      uri={uri}
       className={className}
       preview={false}
       style={{ width: 300, ...style }}/>;
@@ -38,18 +37,18 @@ const MeshArtContent = ({
 }
 
 const CachedImageContent = ({
-  id: id,
+  uri,
   className,
   preview,
   style,
 }: {
-  id?: string;
+  uri?: string;
   className?: string;
   preview?: boolean;
   style?: React.CSSProperties;
 }) => {
   const [loaded, setLoaded] = useState<boolean>(false);
-  const { cachedBlob } = useCachedImage(id || '');
+  const { cachedBlob } = useCachedImage(uri || '');
 
   return <Image
       src={cachedBlob}
@@ -69,14 +68,14 @@ const VideoArtContent = ({
   className,
   style,
   files,
-  id,
+  uri,
   animationURL,
   active,
 }: {
   className?: string;
   style?: React.CSSProperties;
   files?: (MetadataFile | string)[];
-  id?: string;
+  uri?: string;
   animationURL?: string;
   active?: boolean;
 }) => {
@@ -104,10 +103,8 @@ const VideoArtContent = ({
     return arr.length >= 2 ? index === 1 : index === 0;
   })?.[0] as string;
 
-  const { cachedBlob } = useCachedImage(id || '');
-
   const content = (
-    likelyVideo && likelyVideo.startsWith('https://watch.videodelivery.net/') ? ( // CENTRAL
+    likelyVideo && likelyVideo.startsWith('https://watch.videodelivery.net/') ? (
       <div className={`${className} square`}>
         <Stream
           streamRef={(e: any) => playerRef(e)}
@@ -134,7 +131,7 @@ const VideoArtContent = ({
         controlsList="nodownload"
         style={style}
         loop={true}
-        poster={cachedBlob}
+        poster={uri}
       >
         {likelyVideo && <source src={likelyVideo} type="video/mp4" style={style} />}
         {animationURL && <source src={animationURL} type="video/mp4" style={style} />}
@@ -158,7 +155,7 @@ export const ArtContent = ({
   allowMeshRender,
   pubkey,
 
-  image_id,
+  uri,
   animationURL,
   files,
 }: {
@@ -172,14 +169,16 @@ export const ArtContent = ({
   active?: boolean;
   allowMeshRender?: boolean;
   pubkey?: PublicKey | string,
-  image_id?: string;
+  uri?: string;
   animationURL?: string;
   files?: (MetadataFile | string)[];
 }) => {
+  const id = pubkeyToString(pubkey);
 
-  const { ref, data } = useExtendedArt(pubkeyToString(pubkey));
+  const { ref, data } = useExtendedArt(id);
+
   if (pubkey && data) {
-    image_id = data.image;
+    uri = data.image;
     animationURL = data.animation_url;
   }
 
@@ -194,7 +193,7 @@ export const ArtContent = ({
 
   if (allowMeshRender && (category === 'vr' || animationUrlExt === 'glb' || animationUrlExt === 'gltf')) {
     return <MeshArtContent
-      id={image_id}
+      uri={uri}
       animationUrl={animationURL}
       className={className}
       style={style}
@@ -206,12 +205,12 @@ export const ArtContent = ({
       className={className}
       style={style}
       files={files}
-      id={image_id}
+      uri={uri}
       animationURL={animationURL}
       active={active}
     />
   ) : (
-    <CachedImageContent id={image_id}
+    <CachedImageContent uri={uri}
       className={className}
       preview={preview}
       style={style}/>

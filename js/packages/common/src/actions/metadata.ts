@@ -195,22 +195,19 @@ export class Creator {
 export class Data {
   name: string;
   symbol: string;
-  file_id: string[];
-  ar_id: string;
+  uri: string;
   sellerFeeBasisPoints: number;
   creators: Creator[] | null;
   constructor(args: {
     name: string;
     symbol: string;
-    file_id: string[]; // some hashes of the main file.
-    ar_id: string;
+    uri: string;
     sellerFeeBasisPoints: number;
     creators: Creator[] | null;
   }) {
     this.name = args.name;
     this.symbol = args.symbol;
-    this.file_id = args.file_id;
-    this.ar_id = args.ar_id;
+    this.uri = args.uri;
     this.sellerFeeBasisPoints = args.sellerFeeBasisPoints;
     this.creators = args.creators;
   }
@@ -384,8 +381,7 @@ export const METADATA_SCHEMA = new Map<any, any>([
       fields: [
         ['name', 'string'],
         ['symbol', 'string'],
-        ['id', 'string'],
-        ['ar_id', 'string'],
+        ['uri', 'string'],
         ['sellerFeeBasisPoints', 'u16'],
         ['creators', { kind: 'option', type: [Creator] }],
       ],
