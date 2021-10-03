@@ -23,7 +23,7 @@ import {
   SystemProgram,
   TransactionInstruction,
 } from '@solana/web3.js';
-import crypto from 'crypto';
+import crypto, { createHash, Hash } from 'crypto';
 import { getAssetCostToStore } from '../utils/assets';
 import { AR_SOL_HOLDER_ID } from '../utils/ids';
 import BN from 'bn.js';
@@ -49,7 +49,8 @@ export const mintNFT = async (
     name: string;
     symbol: string;
     description: string;
-    image: string | undefined;
+    ar_id: string | undefined;
+    file_id: string[];
     animation_url: string | undefined;
     external_url: string;
     properties: any;
@@ -69,7 +70,12 @@ export const mintNFT = async (
     symbol: metadata.symbol,
     description: metadata.description,
     seller_fee_basis_points: metadata.sellerFeeBasisPoints,
-    image: metadata.image,
+    ar_id: metadata.ar_id,
+    file_id: [
+      'a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a:',  // sha3-256
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:',  // sha-256
+      '46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f:',  // sha-256 with 256 bits
+    ],
     animation_url: metadata.animation_url,
     external_url: metadata.external_url,
     properties: {
@@ -144,7 +150,8 @@ export const mintNFT = async (
     new Data({
       symbol: metadata.symbol,
       name: metadata.name,
-      uri: ' '.repeat(64), // size of url for arweave
+      file_id: [],
+      ar_id: ' '.repeat(64),
       sellerFeeBasisPoints: metadata.sellerFeeBasisPoints,
       creators: metadata.creators,
     }),
@@ -183,7 +190,7 @@ export const mintNFT = async (
   await connection.getParsedConfirmedTransaction(txid, 'confirmed');
 
   // this means we're done getting AR txn setup. Ship it off to ARWeave!
-  const data = new FormData();
+  /**const data = new FormData();
 
   const tags = realFiles.reduce(
     (acc: Record<string, Array<{ name: string; value: string }>>, f) => {
@@ -194,7 +201,7 @@ export const mintNFT = async (
   );
   data.append('tags', JSON.stringify(tags));
   data.append('transaction', txid);
-  realFiles.map(f => data.append('file[]', f));
+  realFiles.map(f => data.append('file[]', f));**/
 
   // TODO: convert to absolute file name for image
 
@@ -204,41 +211,36 @@ export const mintNFT = async (
   // Arweave transactions.
   const ar = ArweaveNodeProvider.getProvider();
   let key = await ar.wallets.generate();
-  
+  // Se debe de realizar alguna operacio con txid, porque contiene los prepagos para subir contenido a arweave.
+
   // image transaction
-  let image_tx = await ar.createTransaction({ data: files[image]}, key);
+  let image_tx = await ar.createTransaction({ data: String(files[0])}, key);
   image_tx.addTag('Content-Type', 'image/jpg');
   await ar.transactions.sign(image_tx, key);
   ar.transactions.getStatus(image_tx.id).then(res => {
     console.log(res);
   })
 
-  // metadata.json transaction
-  let metadata_tx = await ar.createTransaction({ data: files[image]}, key);
-  metadata_tx.addTag('Content-Type', 'application/json');
-  await ar.transactions.sign(metadata_tx, key);
-  ar.transactions.getStatus(metadata_tx.id).then(res => {
-    console.log(res);
-  })
+  metadataContent.ar_id = image_tx.toJSON().id
+  /** metadataContent.file_id = [
+        'a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a:' + ,  // sha3-256
+        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:' + ,  // sha-256
+        '46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f:' + ,  // sha-256 with 256 bits
+    ] **/
 
   // manifest.json transaction
-  let manifest_tx = await ar.createTransaction({ data: files[image]}, key);
+  let manifest_tx = await ar.createTransaction({ data: JSON.stringify(metadataContent)}, key);
   manifest_tx.addTag('Content-Type', 'application/x.arweave-manifest+json');
-  manifest_tx.addTransaction()
   await ar.transactions.sign(manifest_tx, key);
   ar.transactions.getStatus(manifest_tx.id).then(res => {
     console.log(res);
   })
-  
-  const result: IArweaveResult = await (
-    ar.transactions.getData(manifest_tx).then(result => {
-      
-    });
-  );
 
+
+  
 
   // GOOGLE CLOUD FUNCTIONS.
-  const result: IArweaveResult = await (
+  /**const result: IArweaveResult = await (
     await fetch(
       // TODO: add CNAME
       env.startsWith('mainnet-beta')
@@ -249,28 +251,25 @@ export const mintNFT = async (
         body: data,
       },
     )
-  ).json();
+  ).json();**/
 
 
 
-
-
-
-
-  const metadataFile = result.messages?.find(
-    m => m.filename === RESERVED_TXN_MANIFEST,
-  );
-  if (metadataFile?.transactionId && wallet.publicKey) {
+  const manifest_tx_id = manifest_tx?.toJSON().id;
+  if (manifest_tx_id && wallet.publicKey) {
     const updateInstructions: TransactionInstruction[] = [];
     const updateSigners: Keypair[] = [];
 
-    // TODO: connect to testnet arweave
-    const arweaveLink = `https://arweave.net/${metadataFile.transactionId}`;  // CENTRAL
     await updateMetadata(
       new Data({
         name: metadata.name,
         symbol: metadata.symbol,
-        uri: arweaveLink,
+        file_id: [
+          'a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a:',  // sha3-256
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855:',  // sha-256
+          '46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f:',  // sha-256 with 256 bits
+        ],
+        ar_id: manifest_tx_id,
         creators: metadata.creators,
         sellerFeeBasisPoints: metadata.sellerFeeBasisPoints,
       }),
@@ -333,7 +332,7 @@ export const mintNFT = async (
     notify({
       message: 'Art created on Solana',
       description: (
-        <a href={arweaveLink} target="_blank" rel="noopener noreferrer">
+        <a href={`https://${ar.getConfig().api.host}/${manifest_tx_id}`} target="_blank" rel="noopener noreferrer">
           Arweave Link
         </a>
       ),
